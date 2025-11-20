@@ -417,14 +417,65 @@ function ComparisonTable({ myData, competitors }) {
               </TooltipProvider>
             </TableCell>
             <TableCell>
-              <div className="font-medium">{myData.images.filter(img => !img.alt).length} / {myData.images.length}</div>
+              {(() => {
+                const myMissingAlt = myData.images.filter(img => !img.alt).length;
+                const myTotalImages = myData.images.length;
+                
+                // Check if YOU are the best (lowest missing alt among all)
+                let iAmBest = myTotalImages > 0;
+                competitors.forEach(c => {
+                  if (c.comparison.images.count2 > 0 && c.comparison.images.missingAlt2 < myMissingAlt) {
+                    iAmBest = false;
+                  }
+                });
+                
+                return (
+                  <>
+                    <div className="font-medium">{myMissingAlt} / {myTotalImages}</div>
+                    {iAmBest && myTotalImages > 0 && <StatusBadge status="win" />}
+                  </>
+                );
+              })()}
             </TableCell>
-            {competitors.map((c, i) => (
-              <TableCell key={i}>
-                <div className="font-medium">{c.comparison.images.missingAlt2} / {c.comparison.images.count2}</div>
-                <StatusBadge status={c.comparison.images.missingAlt1 > c.comparison.images.missingAlt2 ? 'loss' : (c.comparison.images.missingAlt1 < c.comparison.images.missingAlt2 ? 'win' : 'neutral')} />
-              </TableCell>
-            ))}
+            {competitors.map((c, i) => {
+              // For missing alt: lower is better. Show WIN if this competitor is the best
+              let status = 'neutral';
+              const compMissingAlt = c.comparison.images.missingAlt2;
+              const compTotalImages = c.comparison.images.count2;
+              
+              if (compTotalImages === 0) {
+                status = 'neutral'; // No images, no winner
+              } else {
+                // Check if THIS competitor has the lowest missing alt among all (including you)
+                const myMissingAlt = c.comparison.images.missingAlt1;
+                let competitorIsBest = true;
+                
+                // Compare with you
+                if (myData.images.length > 0 && myMissingAlt < compMissingAlt) {
+                  competitorIsBest = false;
+                }
+                
+                // Compare with other competitors
+                competitors.forEach((otherComp, j) => {
+                  if (i !== j && otherComp.comparison.images.count2 > 0) {
+                    if (otherComp.comparison.images.missingAlt2 < compMissingAlt) {
+                      competitorIsBest = false;
+                    }
+                  }
+                });
+                
+                if (competitorIsBest) {
+                  status = 'win';
+                }
+              }
+              
+              return (
+                <TableCell key={i}>
+                  <div className="font-medium">{compMissingAlt} / {compTotalImages}</div>
+                  <StatusBadge status={status} />
+                </TableCell>
+              );
+            })}
           </TableRow>
 
           <ComparisonRow
@@ -505,14 +556,58 @@ function ComparisonTable({ myData, competitors }) {
                 </TooltipProvider>
               </TableCell>
               <TableCell className="max-w-[250px] align-top">
-                <div className="font-medium text-foreground">{myData.wordCount}</div>
+                {(() => {
+                  // Check if YOU have the highest word count
+                  let iAmBest = myData.wordCount > 0;
+                  competitors.forEach(c => {
+                    if (c.data.wordCount > myData.wordCount) {
+                      iAmBest = false;
+                    }
+                  });
+                  
+                  return (
+                    <>
+                      <div className="font-medium text-foreground">{myData.wordCount}</div>
+                      {iAmBest && myData.wordCount > 0 && <StatusBadge status="win" />}
+                    </>
+                  );
+                })()}
               </TableCell>
-              {competitors.map((c, i) => (
-                <TableCell key={i} className="max-w-[250px] align-top">
-                  <div className="font-medium text-foreground">{c.data.wordCount}</div>
-                  <StatusBadge status={myData.wordCount > c.data.wordCount ? 'win' : (myData.wordCount < c.data.wordCount ? 'loss' : 'neutral')} />
-                </TableCell>
-              ))}
+              {competitors.map((c, i) => {
+                // For word count: higher is better. Show WIN if this competitor has the highest word count
+                let status = 'neutral';
+                const compWordCount = c.data.wordCount;
+                
+                if (!compWordCount || compWordCount === 0) {
+                  status = 'neutral'; // No content, no winner
+                } else {
+                  // Check if THIS competitor has the highest word count among all (including you)
+                  let competitorIsBest = true;
+                  
+                  // Compare with you
+                  if (myData.wordCount > compWordCount) {
+                    competitorIsBest = false;
+                  }
+                  
+                  // Compare with other competitors
+                  competitors.forEach((otherComp, j) => {
+                    if (i !== j && otherComp.data.wordCount > compWordCount) {
+                      competitorIsBest = false;
+                    }
+                  });
+                  
+                  if (competitorIsBest) {
+                    status = 'win';
+                  }
+                }
+                
+                return (
+                  <TableCell key={i} className="max-w-[250px] align-top">
+                    <div className="font-medium text-foreground">{compWordCount}</div>
+                    <StatusBadge status={status} />
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableBody>
         </Table>
@@ -583,12 +678,32 @@ function GranularRow({ label, myData, competitors, path }) {
 
 function StatusBadge({ status }) {
   if (status === 'win') return <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-0 ml-2">WIN</Badge>;
-  if (status === 'loss') return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border-0 ml-2">LOSS</Badge>;
-  return <Badge variant="outline" className="border-white/10 text-muted-foreground ml-2">NEUTRAL</Badge>;
+  // Don't show LOSS or NEUTRAL badges, just return null for cleaner UI
+  return null;
 }
 
 function ComparisonRow({ label, myData, competitors, field, subField, isArray, isNumber }) {
   const myVal = myData[field];
+  
+  // Determine if YOU are the best
+  const myValExists = isArray ? (myVal && myVal.length > 0) : !!myVal;
+  let iAmBest = myValExists;
+  
+  if (myValExists) {
+    competitors.forEach(c => {
+      const compVal = c.data[field];
+      const compValExists = isArray ? (compVal && compVal.length > 0) : !!compVal;
+      
+      if (compValExists) {
+        if (isNumber) {
+          // For numbers, higher is better
+          if (compVal > myVal) {
+            iAmBest = false;
+          }
+        }
+      }
+    });
+  }
 
   return (
     <TableRow className="hover:bg-white/5 border-white/10 transition-colors">
@@ -598,18 +713,57 @@ function ComparisonRow({ label, myData, competitors, field, subField, isArray, i
           {isArray ? (myVal?.join(', ') || '-') : (myVal || <span className="text-muted-foreground italic">Missing</span>)}
         </div>
         {subField && myVal && <div className="text-xs text-muted-foreground mt-1">{myVal.length} chars</div>}
+        {iAmBest && myValExists && isNumber && <StatusBadge status="win" />}
       </TableCell>
 
       {competitors.map((c, i) => {
         const compVal = c.data[field];
         let status = 'neutral';
 
-        // Determine status based on comparison logic from backend or simple check
-        // Using simple check here for display
-        if (c.comparison[field]) {
-          if (c.comparison[field].missing1) status = 'loss';
-          else if (c.comparison[field].missing2) status = 'win';
-          else if (isNumber) status = myVal < compVal ? 'loss' : 'win';
+        // Check if both values exist for comparison
+        const myValExists = isArray ? (myVal && myVal.length > 0) : !!myVal;
+        const compValExists = isArray ? (compVal && compVal.length > 0) : !!compVal;
+
+        // Determine if THIS competitor is the best among all
+        if (compValExists) {
+          let competitorIsBest = true;
+          
+          // Compare with YOU
+          if (myValExists) {
+            if (isNumber && myVal > compVal) {
+              competitorIsBest = false;
+            } else if (!isNumber && myVal) {
+              // For non-numbers with data, having data is good
+              // But we don't compare best, just existence
+              competitorIsBest = false; // If both have data, neither gets automatic win
+            }
+          }
+          
+          // Compare with OTHER competitors
+          competitors.forEach((otherComp, j) => {
+            if (i !== j) {
+              const otherVal = otherComp.data[field];
+              const otherValExists = isArray ? (otherVal && otherVal.length > 0) : !!otherVal;
+              
+              if (otherValExists && isNumber && otherVal > compVal) {
+                competitorIsBest = false;
+              }
+            }
+          });
+          
+          if (competitorIsBest && isNumber) {
+            status = 'win';
+          } else if (!myValExists && compValExists && !isNumber) {
+            // For non-numbers: if you're missing and competitor has it, competitor wins
+            // But only if no other competitor has it too
+            let onlyOneWithData = true;
+            competitors.forEach((otherComp, j) => {
+              if (i !== j && otherComp.data[field]) {
+                onlyOneWithData = false;
+              }
+            });
+            if (onlyOneWithData) status = 'win';
+          }
         }
 
         return (

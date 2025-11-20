@@ -8,13 +8,7 @@ export async function fetchLighthouseScores(url) {
             // Fallback for demo/MVP if rate limited
             if (response.status === 429) {
                 console.log('Returning mock Lighthouse data for demo purposes.');
-                return {
-                    performance: Math.floor(Math.random() * 20) + 80, // 80-99
-                    accessibility: Math.floor(Math.random() * 20) + 80,
-                    bestPractices: Math.floor(Math.random() * 20) + 80,
-                    seo: Math.floor(Math.random() * 20) + 80,
-                    isMock: true
-                };
+                return null;
             }
             return null;
         }
