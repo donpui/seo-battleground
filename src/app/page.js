@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Trash2, Info } from 'lucide-react';
+import { Plus, Trash2, Info, Github, ArrowUp } from 'lucide-react';
 
 export default function Home() {
   const [myUrl, setMyUrl] = useState('');
@@ -47,20 +47,32 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-background p-8 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl font-extrabold tracking-tight gradient-text pb-2">
-            SEO Battleground
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Compare your website against up to 3 competitors. Analyze metadata, identify gaps, and claim your victory.
-          </p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white">
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold mb-4 gradient-text">SEO Battleground</h1>
+          <p className="text-xl text-muted-foreground">Compare website SEO, meta tags, and performance metrics</p>
         </div>
 
+        {/* Quick Navigation - Only show when results are available */}
+        {result && (
+          <div className="sticky top-4 z-50 mb-8 flex justify-center">
+            <div className="glass-panel border-0 px-6 py-3 rounded-full shadow-lg backdrop-blur-xl bg-secondary/80">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-muted-foreground">Jump to:</span>
+                <a href="#scores" className="text-blue-400 hover:text-blue-300 transition-colors">Scores</a>
+                <span className="text-white/20">•</span>
+                <a href="#recommendations" className="text-green-400 hover:text-green-300 transition-colors">Recommendations</a>
+                <span className="text-white/20">•</span>
+                <a href="#comparison" className="text-purple-400 hover:text-purple-300 transition-colors">Comparison</a>
+                <span className="text-white/20">•</span>
+                <a href="#granular" className="text-yellow-400 hover:text-yellow-300 transition-colors">Tags</a>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Input Section */}
-        <Card className="glass-panel border-0">
+        <Card className="glass-panel border-0 mb-8">
           <CardContent className="p-8">
             <CompetitorFinder
               onSelect={(url) => {
@@ -88,10 +100,9 @@ export default function Home() {
 
         {/* Results Dashboard */}
         {result && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-
-            {/* Scores Grid */}
-            <div className={`grid gap-8 ${result.competitors.length >= 2 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <div className="space-y-8">
+            {/* Score Cards Grid */}
+            <div id="scores" className="scroll-mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* My Score */}
               <div className="space-y-6">
                 <ScoreCard
@@ -123,8 +134,94 @@ export default function Home() {
               ))}
             </div>
 
+            {/* Recommendations Section */}
+            <Card id="recommendations" className="scroll-mt-20 glass-panel border-0 relative">
+              <CardHeader>
+                <CardTitle className="text-green-400">💡 Recommendations</CardTitle>
+                <CardDescription>Actionable steps to improve your SEO based on this analysis</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {result.myData.score.deductions.length > 0 ? (
+                    result.myData.score.deductions.map((deduction, i) => {
+                      let recommendation = '';
+                      if (deduction.includes('Title')) {
+                        recommendation = 'Add a compelling title tag (30-60 characters) that includes your primary keywords and accurately describes your page content.';
+                      } else if (deduction.includes('Description')) {
+                        recommendation = 'Write a meta description (50-160 characters) that summarizes your page and encourages clicks from search results.';
+                      } else if (deduction.includes('H1')) {
+                        recommendation = 'Add exactly one H1 tag per page that clearly states the main topic. Use H2-H6 for subheadings.';
+                      } else if (deduction.includes('images missing Alt')) {
+                        const match = deduction.match(/(\d+) images/);
+                        const count = match ? match[1] : 'some';
+                        recommendation = `Add descriptive alt text to ${count} images. Alt text helps search engines understand your images and improves accessibility.`;
+                      } else if (deduction.includes('Open Graph')) {
+                        recommendation = 'Add Open Graph tags (og:title, og:description, og:image) to control how your page appears when shared on social media.';
+                      } else if (deduction.includes('word count')) {
+                        recommendation = 'Increase your content to at least 300 words. Longer, quality content tends to rank better and provides more value to users.';
+                      } else {
+                        recommendation = `Address: ${deduction}`;
+                      }
+
+                      return (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+                          <div className="mt-0.5 text-green-400">✓</div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-foreground">{recommendation}</div>
+                            <div className="text-xs text-muted-foreground mt-1">Issue: {deduction}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <span className="text-2xl">🎉</span>
+                      <div>
+                        <div className="font-medium text-green-400">Excellent work!</div>
+                        <div className="text-sm text-muted-foreground">Your site has no major SEO issues. Keep monitoring and updating your content regularly.</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {result.competitors.length > 0 && (
+                    <>
+                      <Separator className="bg-white/10 my-4" />
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground">Competitive Insights</h4>
+                        {result.competitors.map((comp, i) => {
+                          const insights = [];
+
+                          if (comp.score.score > result.myData.score.score) {
+                            insights.push(`${comp.url} has a higher SEO score (${comp.score.score} vs ${result.myData.score.score}). Review their implementation.`);
+                          }
+
+                          if (comp.data.wordCount > result.myData.wordCount) {
+                            insights.push(`${comp.url} has more content (${comp.data.wordCount} words vs ${result.myData.wordCount}). Consider expanding your content.`);
+                          }
+
+                          const myMissingAlt = result.myData.images.filter(img => !img.alt).length;
+                          const compMissingAlt = comp.data.images.filter(img => !img.alt).length;
+                          if (myMissingAlt > compMissingAlt && myMissingAlt > 0) {
+                            insights.push(`${comp.url} has better image optimization. Add alt text to your images.`);
+                          }
+
+                          return insights.length > 0 ? (
+                            <div key={i} className="text-sm text-muted-foreground pl-4 border-l-2 border-purple-500/30">
+                              {insights.map((insight, j) => (
+                                <div key={j} className="mb-1">• {insight}</div>
+                              ))}
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Detailed Comparison */}
-            <Card className="glass-panel border-0 relative">
+            <Card id="comparison" className="scroll-mt-20 glass-panel border-0 relative">
               <CardHeader>
                 <CardTitle>Deep Dive Comparison</CardTitle>
                 <CardDescription>Granular breakdown of SEO elements.</CardDescription>
@@ -140,6 +237,55 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <footer className="mt-16 border-t border-white/10 pt-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-semibold gradient-text mb-2">SEO Battleground</h3>
+              <p className="text-sm text-muted-foreground">Free tool to compare website SEO & meta tags</p>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <a
+                href="https://github.com/donpui/seo-battleground"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Github className="h-5 w-5" />
+                <span className="text-sm">View on GitHub</span>
+              </a>
+
+              <a
+                href="https://github.com/donpui/seo-battleground/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="text-sm">💬 Feedback</span>
+              </a>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Back to top"
+              >
+                <ArrowUp className="h-5 w-5" />
+                <span className="text-sm">Back to Top</span>
+              </button>
+            </div>
+          </div>
+
+          <Separator className="bg-white/10 my-6" />
+
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Built with Next.js, Tailwind CSS, and shadcn/ui</p>
+            <p className="mt-1">© {new Date().getFullYear()} SEO Battleground. Open source under MIT License.</p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
@@ -319,7 +465,7 @@ function ComparisonTable({ myData, competitors }) {
 
       <Separator className="bg-white/10" />
 
-      <div className="space-y-4">
+      <div id="granular" className="scroll-mt-20 space-y-4">
         <h3 className="text-lg font-semibold text-foreground">Granular Tag Comparison</h3>
         <Table>
           <TableHeader>
@@ -527,7 +673,9 @@ function CompetitorFinder({ onSelect, myUrl, setMyUrl, competitors, setCompetito
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-8">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-blue-400">Your Website</label>
+          <div className="flex items-center justify-between h-8">
+            <label className="text-sm font-medium text-blue-400">Your Website</label>
+          </div>
           <Input
             placeholder="google.com"
             value={myUrl}
@@ -535,11 +683,11 @@ function CompetitorFinder({ onSelect, myUrl, setMyUrl, competitors, setCompetito
             className="bg-background/50 border-white/10 h-12"
           />
         </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between h-8">
             <label className="text-sm font-medium text-purple-400">Competitor Websites (Max 3)</label>
             {competitors.length < 3 && (
-              <Button variant="ghost" size="sm" onClick={addCompetitor} className="h-8 text-xs text-muted-foreground hover:text-white">
+              <Button variant="ghost" size="sm" onClick={addCompetitor} className="h-6 text-xs text-muted-foreground hover:text-white">
                 <Plus className="size-3 mr-1" /> Add
               </Button>
             )}
